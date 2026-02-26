@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'socket_service.dart';
 import 'chat_page.dart';
@@ -12,15 +15,27 @@ class UserListPage extends StatefulWidget {
 
 class _UserListPageState extends State<UserListPage> {
   List users = [];
+  late StreamSubscription subscription;
 
   @override
   void initState() {
     super.initState();
 
-    SocketService().socket.on("userList", (data) {
-      setState(() {
-        users = data.where((u) => u != widget.username).toList();
-      });
+    // 🔥 minta ulang user list
+    SocketService().send({"type": "login", "sender": widget.username});
+
+    print("📤 USERLIST PAGE SENT 1: ${{"type": "login", "sender": widget.username}}");
+
+    subscription = SocketService().stream.listen((data) {
+      final decoded = jsonDecode(data);
+
+      print("📩 USERLIST PAGE RECEIVED: $decoded");
+
+      if (decoded["type"] == "userList") {
+        setState(() {
+          users = List<String>.from(decoded["users"]).where((u) => u != widget.username).toList();
+        });
+      }
     });
   }
 
@@ -31,7 +46,6 @@ class _UserListPageState extends State<UserListPage> {
 
   @override
   void dispose() {
-    SocketService().socket.off("userList");
     super.dispose();
   }
 

@@ -12,16 +12,22 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController usernameController = TextEditingController();
 
+  // void login() {
+  //   final username = usernameController.text.trim();
+  //   if (username.isEmpty) return;
+
+  //   SocketService().send({"type": "login", "username": username});
+
+  //   Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UserListPage(username: username)));
+  // }
   void login() {
     final username = usernameController.text.trim();
     if (username.isEmpty) return;
 
-    if (!SocketService().isConnected) {
-      print("Socket not connected yet!");
-      return;
-    }
-
-    SocketService().socket.emit("login", username);
+    SocketService().send({
+      "type": "login",
+      "sender": username, // 🔥 WAJIB sender
+    });
 
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UserListPage(username: username)));
   }

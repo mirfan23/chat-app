@@ -35,6 +35,16 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   web_socket_channel: ^3.0.3
+  google_fonts: ^6.3.3
+  provider: ^6.1.5
+  http: ^1.6.0
+  intl: ^0.20.2
+  path_provider: ^2.1.5
+  fx_helper:
+    git:
+      url: https://github.com/muhammadaufa07/fx_helper.git
+      ref: 1.0.51 # Optional: specify branch, tag, or commit
+  
   # socket_io_client: ^3.1.2
 
 dev_dependencies:

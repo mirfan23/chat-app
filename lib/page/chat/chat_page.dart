@@ -18,6 +18,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   StreamSubscription? subscription;
 
@@ -38,6 +39,7 @@ class _ChatPageState extends State<ChatPage> {
           setState(() {
             Provider.of<ChatProvider>(context, listen: false).addMessage(decoded);
           });
+          scrollToBottom();
         }
 
         if (decoded["type"] == "typing" && decoded["roomId"] == widget.roomId) {
@@ -48,14 +50,16 @@ class _ChatPageState extends State<ChatPage> {
       });
 
       Provider.of<ChatProvider>(context, listen: false).getMessages(context, widget.roomId);
+      scrollToBottom();
     });
   }
 
   @override
   void dispose() {
     subscription?.cancel();
-    SocketService().leaveRoom(); // 🔥 penting
+    SocketService().leaveRoom();
     controller.dispose();
+    _scrollController.dispose(); // 🔥 jangan lupa dispose
     super.dispose();
   }
 
@@ -72,6 +76,18 @@ class _ChatPageState extends State<ChatPage> {
     SocketService().send({"type": "typing", "roomId": widget.roomId, "sender": widget.username, "isTyping": isTyping});
   }
 
+  void scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent, // 🔥 karena reverse: true
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -84,6 +100,8 @@ class _ChatPageState extends State<ChatPage> {
               child: Consumer<ChatProvider>(
                 builder: (context, provider, child) {
                   return ListView.builder(
+                    controller: _scrollController,
+                    // reverse: true,
                     itemCount: provider.messages.length,
                     itemBuilder: (context, index) {
                       final msg = provider.messages[index];

@@ -21,7 +21,7 @@ class _ChatListPageState extends State<ChatListPage> {
     // Auto fetch saat pertama kali masuk
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ChatListProvider>();
-      provider.initSocketListener();
+      provider.initSocketListener(widget.username);
       getData();
     });
   }

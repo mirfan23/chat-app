@@ -20,7 +20,7 @@ class ChatListProvider extends ChangeNotifier {
   // =========================
   // INIT SOCKET LISTENER
   // =========================
-  void initSocketListener() {
+  void initSocketListener(String username) {
     if (_initialized) return;
     print('📥 RECEIVE 1');
 
@@ -37,8 +37,8 @@ class ChatListProvider extends ChangeNotifier {
           _handleOnlineUsers(data);
           break;
 
-        case "message":
-          _handleIncomingMessage(data);
+        case "newMessage":
+          _handleIncomingMessage(data, username);
           break;
       }
     });
@@ -79,29 +79,32 @@ class ChatListProvider extends ChangeNotifier {
   // =========================
   // HANDLE NEW MESSAGE
   // =========================
-  void _handleIncomingMessage(Map<String, dynamic> data) {
-    final roomId = data["roomId"];
-    final sender = data["sender"];
+  void _handleIncomingMessage(Map<String, dynamic> data, String username) {
+    final sender = (data["sender"] ?? "").toString();
+    final receiver = (data["receiver"] ?? "").toString();
     final text = data["text"];
+    final createdAt = DateTime.tryParse(data["createdAt"] ?? "");
 
-    final index = _chatList.indexWhere((element) => element.roomId == roomId);
+    final myUsername = username.toLowerCase();
+
+    final friend = sender.toLowerCase() == myUsername ? receiver : sender;
+
+    final index = _chatList.indexWhere((element) => element.friend.toLowerCase() == friend.toLowerCase());
+
+    print("🔥 FRIEND FROM SOCKET: $friend");
+    print("🔥 FOUND INDEX: $index");
 
     if (index != -1) {
       final old = _chatList[index];
 
-      _chatList[index] = ChatListModel(
-        roomId: old.roomId,
-        friend: old.friend,
+      final updated = old.copyWith(
         lastMessage: text,
         lastSender: sender,
-        lastMessageTime: DateTime.now(),
-        isRead: false,
+        lastMessageTime: createdAt ?? DateTime.now(),
         unreadCount: old.unreadCount + 1,
-        isOnline: old.isOnline,
       );
 
-      // 🔥 pindahkan ke atas seperti WhatsApp
-      final updated = _chatList.removeAt(index);
+      _chatList.removeAt(index);
       _chatList.insert(0, updated);
 
       notifyListeners();

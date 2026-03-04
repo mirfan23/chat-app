@@ -20,12 +20,21 @@ class _ChatListPageState extends State<ChatListPage> {
 
     // Auto fetch saat pertama kali masuk
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<ChatListProvider>();
+      provider.initSocketListener();
       getData();
     });
   }
 
   Future<void> getData() async {
-    await Provider.of<ChatListProvider>(context, listen: false).fetchChatList(context);
+    Provider.of<ChatListProvider>(context, listen: false).fetchChatList(context);
+  }
+
+  @override
+  void dispose() {
+    // Provider.of<ChatListProvider>(context, listen: false)
+    //     .disposeSocket();
+    super.dispose();
   }
 
   @override
@@ -42,7 +51,7 @@ class _ChatListPageState extends State<ChatListPage> {
             }
 
             // 🔵 Empty state
-            if (provider.chats.isEmpty) {
+            if (provider.chatList.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
@@ -55,15 +64,39 @@ class _ChatListPageState extends State<ChatListPage> {
             // 🔵 Normal state
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: provider.chats.length,
+              itemCount: provider.chatList.length,
               itemBuilder: (_, index) {
-                final chat = provider.chats[index];
-
+                final chat = provider.chatList[index];
                 return ListTile(
+                  leading: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.grey.shade300,
+                        child: Text(chat.friend[0].toUpperCase(), style: const TextStyle(color: Colors.black)),
+                      ),
+
+                      // Online indicator
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: chat.isOnline ? Colors.green : Colors.grey,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-
-                  title: Text(chat.friend, style: const TextStyle(fontWeight: FontWeight.bold)),
-
+                  title: Text(
+                    chat.friend,
+                    style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.bold : FontWeight.normal),
+                  ),
                   subtitle: Row(
                     children: [
                       if (chat.lastSender == widget.username)
@@ -75,7 +108,14 @@ class _ChatListPageState extends State<ChatListPage> {
 
                       if (chat.lastSender == widget.username) const SizedBox(width: 4),
 
-                      Expanded(child: Text(chat.lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Expanded(
+                        child: Text(
+                          chat.lastMessage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.w600 : FontWeight.normal),
+                        ),
+                      ),
                     ],
                   ),
 

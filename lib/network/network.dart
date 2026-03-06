@@ -39,6 +39,7 @@ class Network extends FxNetwork<Net> {
     if (token != null && token?.isNotEmpty == true) {
       h.addAll({"Authorization": "Bearer $token"});
     }
+    print("header: $h");
     return h;
   }
 

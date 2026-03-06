@@ -1,13 +1,13 @@
 import 'dart:async';
+import 'package:chat_app/page/profile/profile_provider.dart';
+import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:chat_app/page/list_user/chat_list_provider.dart';
 import '../chat/chat_page.dart';
 
 class ChatListPage extends StatefulWidget {
-  final String username;
-
-  const ChatListPage({super.key, required this.username});
+  const ChatListPage({super.key});
 
   @override
   State<ChatListPage> createState() => _ChatListPageState();
@@ -21,13 +21,15 @@ class _ChatListPageState extends State<ChatListPage> {
     // Auto fetch saat pertama kali masuk
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ChatListProvider>();
-      provider.initSocketListener(widget.username);
-      getData();
+      final profileProvider = context.read<ProfileProvider>();
+      provider.initSocketListener(profileProvider.profile?.username ?? '');
+      provider.fetchChatList(context);
     });
   }
 
   Future<void> getData() async {
     Provider.of<ChatListProvider>(context, listen: false).fetchChatList(context);
+    Provider.of<ChatListProvider>(context, listen: false).getListAllUser(context);
   }
 
   @override
@@ -39,6 +41,8 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
+    var profielProvider = context.watch<ProfileProvider>();
+    var username = profielProvider.profile?.username ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text("Chats")),
       body: RefreshIndicator(
@@ -99,14 +103,14 @@ class _ChatListPageState extends State<ChatListPage> {
                   ),
                   subtitle: Row(
                     children: [
-                      if (chat.lastSender == widget.username)
+                      if (chat.lastSender == username)
                         Icon(
                           chat.isRead ? Icons.done_all : Icons.done,
                           size: 18,
                           color: chat.isRead ? Colors.blue : Colors.grey,
                         ),
 
-                      if (chat.lastSender == widget.username) const SizedBox(width: 4),
+                      if (chat.lastSender == username) const SizedBox(width: 4),
 
                       Expanded(
                         child: Text(
@@ -142,7 +146,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ChatPage(roomId: chat.roomId, username: widget.username),
+                        builder: (_) => ChatPage(roomId: chat.roomId, username: username, friend: chat.friend),
                       ),
                     ).then((_) => getData());
                   },

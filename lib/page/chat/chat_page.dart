@@ -9,8 +9,9 @@ import 'package:provider/provider.dart';
 class ChatPage extends StatefulWidget {
   final String roomId;
   final String username;
+  final String friend;
 
-  const ChatPage({super.key, required this.roomId, required this.username});
+  const ChatPage({super.key, required this.roomId, required this.username, required this.friend});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -93,7 +94,7 @@ class _ChatPageState extends State<ChatPage> {
     return SafeArea(
       top: false,
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.roomId)),
+        appBar: AppBar(title: Text(widget.friend)),
         body: Column(
           children: [
             Expanded(

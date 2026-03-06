@@ -1,5 +1,6 @@
 import 'package:chat_app/page/list_user/chat_list_provider.dart';
 import 'package:chat_app/page/login/login_provider.dart';
+import 'package:chat_app/page/main_app.dart';
 import 'package:chat_app/page/register/register_page.dart';
 import 'package:provider/provider.dart';
 
@@ -39,11 +40,7 @@ class _LoginPageState extends State<LoginPage> {
                     bool isSuccess = await provider.login(context);
 
                     if (isSuccess) {
-                      Provider.of<ChatListProvider>(context, listen: false).fetchChatList(context);
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => ChatListPage(username: provider.usernameController.text)),
-                      );
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MainApp()));
                     } else {
                       return;
                     }

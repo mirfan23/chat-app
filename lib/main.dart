@@ -2,8 +2,11 @@ import 'package:chat_app/network/network.dart';
 import 'package:chat_app/page/chat/chat_provider.dart';
 import 'package:chat_app/page/list_user/chat_list_provider.dart';
 import 'package:chat_app/page/login/login_provider.dart';
+import 'package:chat_app/page/main_app.dart';
+import 'package:chat_app/page/profile/profile_provider.dart';
 import 'package:chat_app/page/register/register_provider.dart';
 import 'package:chat_app/page/socket_service.dart';
+import 'package:chat_app/page/splash/splash_page.dart';
 import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'page/login/login_page.dart';
@@ -32,11 +35,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RegisterProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => ChatListProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: Network().isDevMode,
         scaffoldMessengerKey: globalSnackbarKey,
-        home: const LoginPage(),
+        home: const SplashPage(),
         theme: customTheme,
       ),
     );

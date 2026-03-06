@@ -40,6 +40,9 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   path_provider: ^2.1.5
+  pointycastle: ^3.7.3
+  basic_utils: ^5.7.0
+  flutter_secure_storage: ^9.0.0
   fx_helper:
     git:
       url: https://github.com/muhammadaufa07/fx_helper.git

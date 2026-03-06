@@ -30,7 +30,9 @@ class SocketService {
 
     print("🔄 Connecting to server...");
 
-    _channel = WebSocketChannel.connect(Uri.parse("ws://10.1.158.108:3000/ws?token=${Network().token}"));
+    print("🔥 TOKEN: ${Network().token}");
+
+    _channel = WebSocketChannel.connect(Uri.parse("ws://10.1.158.51:3000/ws?token=${Network().token}"));
 
     _channel!.stream.listen(
       (message) {

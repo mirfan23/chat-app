@@ -1,20 +1,28 @@
 import 'dart:convert';
 
+import 'package:chat_app/models/all_user_response.dart';
 import 'package:chat_app/models/chat_list_model.dart';
 import 'package:chat_app/network/Net.dart';
 import 'package:chat_app/network/network.dart';
+import 'package:chat_app/page/chat/chat_provider.dart';
+import 'package:chat_app/page/login/login_page.dart';
 import 'package:chat_app/page/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fx_helper/network/fx_network.dart';
+import 'package:fx_helper/secure_storage.dart';
 import 'package:fx_helper/widgets/net_msg_dialog.dart';
+import 'package:provider/provider.dart';
 
 class ChatListProvider extends ChangeNotifier {
   bool isLoading = false;
+
   bool _initialized = false;
   final SocketService _socket = SocketService();
-  List<dynamic> users = [];
+
+  List<AllUserModel> users = [];
   List<ChatListModel> _chatList = [];
   List<ChatListModel> get chatList => _chatList;
+
   final Map<String, bool> _onlineUsers = {};
 
   // =========================
@@ -167,5 +175,41 @@ class ChatListProvider extends ChangeNotifier {
       return "Yesterday";
     }
     return "${time.day}/${time.month}/${time.year}";
+  }
+
+  void logout(BuildContext context) async {
+    // 1. Disconnect socket
+    SocketService().leaveRoom();
+
+    // 2. Hapus token
+    await SecureStorage().deleteToken();
+    Network().token = null;
+
+    // 3. Bersihkan provider
+    Provider.of<ChatProvider>(context, listen: false).clearRoom();
+
+    // 4. Navigasi ke login
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
+  }
+
+  Future<void> getListAllUser(BuildContext context) async {
+    isLoading = true;
+    dynamic res;
+    notifyListeners();
+    try {
+      res = await Network().getApi(Net.gateway, "users");
+      var body = AllUserResponse.fromRawJson(res.body);
+      if (res.statusCode == 200) {
+        users = body.data ?? [];
+        isLoading = false;
+        notifyListeners();
+      } else {
+        throw ApiException(body.message);
+      }
+    } catch (e) {
+      NetMsgDialog.handleError(context, e, res);
+    }
+    isLoading = false;
+    notifyListeners();
   }
 }

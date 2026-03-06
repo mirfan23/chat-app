@@ -25,7 +25,6 @@ class LoginProvider extends ChangeNotifier {
       if (res.statusCode == 200) {
         final token = body['data']['token'];
         await SecureStorage().setToken(token);
-        Network().token = token;
         isLoading = false;
         notifyListeners();
         return true;

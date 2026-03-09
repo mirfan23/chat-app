@@ -1,10 +1,8 @@
-import 'package:chat_app/page/list_user/chat_list_provider.dart';
 import 'package:chat_app/page/login/login_provider.dart';
 import 'package:chat_app/page/main_app.dart';
 import 'package:chat_app/page/register/register_page.dart';
 import 'package:provider/provider.dart';
 
-import '../list_user/chat_list_page.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {

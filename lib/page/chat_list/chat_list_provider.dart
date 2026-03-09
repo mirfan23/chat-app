@@ -30,12 +30,9 @@ class ChatListProvider extends ChangeNotifier {
   // =========================
   void initSocketListener(String username) {
     if (_initialized) return;
-    print('📥 RECEIVE 1');
 
     _socket.stream.listen((event) {
-      print('📥 RECEIVE 2');
       final data = jsonDecode(event);
-      print('📥 RECEIVE 3 : $data');
 
       switch (data["type"]) {
         case "user_status":

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:chat_app/page/chat/chat_provider.dart';
 import 'package:chat_app/page/socket_service.dart';
+import 'package:chat_app/security/e2ee_services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -68,7 +69,18 @@ class _ChatPageState extends State<ChatPage> {
     final text = controller.text.trim();
     if (text.isEmpty) return;
 
-    SocketService().send({"type": "sendMessage", "roomId": widget.roomId, "sender": widget.username, "text": text});
+    final encrypted = E2EEService.encryptMessage(text, widget.roomId);
+
+    SocketService().send({
+      "type": "sendMessage",
+      "roomId": widget.roomId,
+      "sender": widget.username,
+      "receiver": widget.friend,
+      "cipherText": encrypted["cipherText"],
+      "encryptedKey": encrypted["encryptedKey"],
+      "iv": encrypted["iv"],
+      "preview": text,
+    });
 
     controller.clear();
   }

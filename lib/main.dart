@@ -1,6 +1,6 @@
 import 'package:chat_app/network/network.dart';
 import 'package:chat_app/page/chat/chat_provider.dart';
-import 'package:chat_app/page/list_user/chat_list_provider.dart';
+import 'package:chat_app/page/chat_list/chat_list_provider.dart';
 import 'package:chat_app/page/login/login_provider.dart';
 import 'package:chat_app/page/main_app.dart';
 import 'package:chat_app/page/profile/profile_provider.dart';

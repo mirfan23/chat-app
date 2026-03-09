@@ -1,5 +1,5 @@
 import 'package:chat_app/network/network.dart';
-import 'package:chat_app/page/list_user/chat_list_page.dart';
+import 'package:chat_app/page/chat_list/chat_list_page.dart';
 import 'package:chat_app/page/profile/profile_page.dart';
 import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';

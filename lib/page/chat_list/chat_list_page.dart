@@ -3,7 +3,7 @@ import 'package:chat_app/page/profile/profile_provider.dart';
 import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:chat_app/page/list_user/chat_list_provider.dart';
+import 'package:chat_app/page/chat_list/chat_list_provider.dart';
 import '../chat/chat_page.dart';
 
 class ChatListPage extends StatefulWidget {

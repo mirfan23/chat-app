@@ -32,10 +32,11 @@ class SocketService {
 
     print("🔥 TOKEN: ${Network().token}");
 
-    _channel = WebSocketChannel.connect(Uri.parse("ws://10.1.158.146:3000/ws?token=${Network().token}"));
+    _channel = WebSocketChannel.connect(Uri.parse("ws://10.1.158.142:3000/ws?token=${Network().token}"));
 
     _channel!.stream.listen(
       (message) {
+        print("📥 SOCKET RECEIVE: $message");
         _controller.add(message);
       },
       onDone: () {
@@ -114,5 +115,9 @@ class SocketService {
   void disconnect() {
     _channel?.sink.close();
     _isConnected = false;
+  }
+
+  void getChatList() {
+    send({"type": "chatList"});
   }
 }

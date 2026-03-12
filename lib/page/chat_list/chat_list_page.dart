@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:chat_app/page/profile/profile_provider.dart';
+import 'package:chat_app/page/socket_service.dart';
 import 'package:chat_app/theme.dart';
+import 'package:chat_app/util/formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:chat_app/page/chat_list/chat_list_provider.dart';
 import '../chat/chat_page.dart';
+import 'package:fx_helper/image_initials.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -23,13 +26,13 @@ class _ChatListPageState extends State<ChatListPage> {
       final provider = context.read<ChatListProvider>();
       final profileProvider = context.read<ProfileProvider>();
       provider.initSocketListener(profileProvider.profile?.username ?? '');
-      provider.fetchChatList(context);
+      SocketService().getChatList();
     });
   }
 
   Future<void> getData() async {
-    Provider.of<ChatListProvider>(context, listen: false).fetchChatList(context);
     Provider.of<ChatListProvider>(context, listen: false).getListAllUser(context);
+    SocketService().getChatList();
   }
 
   @override
@@ -74,17 +77,14 @@ class _ChatListPageState extends State<ChatListPage> {
                 return ListTile(
                   leading: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.grey.shade300,
-                        child: Text(chat.friend[0].toUpperCase(), style: const TextStyle(color: Colors.black)),
-                      ),
+                      ImageInitials(text: chat.friend, style: textStyleHuge(context)),
 
-                      // Online indicator
+                      // ONLINE DOT
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
@@ -97,10 +97,28 @@ class _ChatListPageState extends State<ChatListPage> {
                     ],
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(
-                    chat.friend,
-                    style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.bold : FontWeight.normal),
+
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          chat.friend,
+                          style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.bold : FontWeight.w500),
+                        ),
+                      ),
+
+                      if (chat.isOnline)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text("online", style: TextStyle(fontSize: 10, color: Colors.green)),
+                        ),
+                    ],
                   ),
+
                   subtitle: Row(
                     children: [
                       if (chat.lastSender == username)
@@ -117,7 +135,10 @@ class _ChatListPageState extends State<ChatListPage> {
                           chat.lastMessage,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.w600 : FontWeight.normal),
+                          style: TextStyle(
+                            fontWeight: chat.unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                            color: chat.unreadCount > 0 ? Colors.black : Colors.grey.shade700,
+                          ),
                         ),
                       ),
                     ],
@@ -127,16 +148,17 @@ class _ChatListPageState extends State<ChatListPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(provider.formatTime(chat.lastMessageTime), style: const TextStyle(fontSize: 12)),
+                      Text(Formatter().formatTime(chat.lastMessageTime), style: const TextStyle(fontSize: 12)),
 
                       if (chat.unreadCount > 0)
-                        Container(
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
                           margin: const EdgeInsets.only(top: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                           decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
                           child: Text(
                             chat.unreadCount.toString(),
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
                     ],
@@ -148,7 +170,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       MaterialPageRoute(
                         builder: (_) => ChatPage(roomId: chat.roomId, username: username, friend: chat.friend),
                       ),
-                    ).then((_) => getData());
+                    ).then((_) => SocketService().getChatList());
                   },
                 );
               },

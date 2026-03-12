@@ -47,7 +47,7 @@ class ChatListModel {
       friend: json["friend"] ?? "",
       lastMessage: json["lastMessage"] ?? "",
       lastSender: json["lastSender"] ?? "",
-      lastMessageTime: DateTime.tryParse(json["lastMessageTime"] ?? "") ?? DateTime.now(),
+      lastMessageTime: DateTime.tryParse(json["lastMessageTime"])?.toLocal() ?? DateTime.now(),
       isRead: json["isRead"] ?? false,
       unreadCount: json["unreadCount"] ?? 0,
       isOnline: json["isOnline"] ?? false,

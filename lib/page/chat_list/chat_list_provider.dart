@@ -4,14 +4,10 @@ import 'package:chat_app/models/all_user_response.dart';
 import 'package:chat_app/models/chat_list_model.dart';
 import 'package:chat_app/network/Net.dart';
 import 'package:chat_app/network/network.dart';
-import 'package:chat_app/page/chat/chat_provider.dart';
-import 'package:chat_app/page/login/login_page.dart';
 import 'package:chat_app/page/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fx_helper/network/fx_network.dart';
-import 'package:fx_helper/secure_storage.dart';
 import 'package:fx_helper/widgets/net_msg_dialog.dart';
-import 'package:provider/provider.dart';
 
 class ChatListProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -44,6 +40,10 @@ class ChatListProvider extends ChangeNotifier {
 
         case "newMessage":
           _handleIncomingMessage(data, username);
+          break;
+
+        case "chatList":
+          _handleChatList(data);
           break;
       }
     });
@@ -79,6 +79,26 @@ class ChatListProvider extends ChangeNotifier {
 
       notifyListeners();
     }
+  }
+
+  // =========================
+  // HANDLE CHAT LIST
+  // =========================
+  void _handleChatList(Map<String, dynamic> data) {
+    final List list = data["data"] ?? [];
+
+    print("🔥 CHAT LIST FROM SOCKET: ${list.length}");
+
+    _chatList = list.map((e) {
+      final chat = ChatListModel.fromJson(e);
+
+      // simpan ke map
+      _onlineUsers[chat.friend.toLowerCase()] = chat.isOnline;
+
+      return chat;
+    }).toList();
+
+    notifyListeners();
   }
 
   // =========================
@@ -134,60 +154,33 @@ class ChatListProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchChatList(BuildContext context) async {
-    isLoading = true;
-    notifyListeners();
+  // Future<void> fetchChatList(BuildContext context) async {
+  //   isLoading = true;
+  //   notifyListeners();
 
-    dynamic res;
+  //   dynamic res;
 
-    try {
-      res = await Network().getApi(Net.gateway, "chatList");
-      final body = jsonDecode(res.body);
+  //   try {
+  //     res = await Network().getApi(Net.gateway, "chatList");
+  //     final body = jsonDecode(res.body);
 
-      if (res.statusCode == 200 && body["data"] != null) {
-        _chatList = (body["data"] as List)
-            .map((e) => ChatListModel.fromJson(e))
-            .map((chat) => chat.copyWith(isOnline: _onlineUsers[chat.friend.toLowerCase()]))
-            .toList();
-      } else {
-        _chatList = [];
-        ApiException("");
-      }
-    } catch (e) {
-      print("chatList error: $e");
-      NetMsgDialog.handleError(context, e, res);
-    }
+  //     if (res.statusCode == 200 && body["data"] != null) {
+  //       _chatList = (body["data"] as List)
+  //           .map((e) => ChatListModel.fromJson(e))
+  //           .map((chat) => chat.copyWith(isOnline: _onlineUsers[chat.friend.toLowerCase()]))
+  //           .toList();
+  //     } else {
+  //       _chatList = [];
+  //       ApiException("");
+  //     }
+  //   } catch (e) {
+  //     print("chatList error: $e");
+  //     NetMsgDialog.handleError(context, e, res);
+  //   }
 
-    isLoading = false;
-    notifyListeners();
-  }
-
-  String formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inDays == 0) {
-      return "${time.hour}:${time.minute.toString().padLeft(2, '0')}";
-    } else if (diff.inDays == 1) {
-      return "Yesterday";
-    }
-    return "${time.day}/${time.month}/${time.year}";
-  }
-
-  void logout(BuildContext context) async {
-    // 1. Disconnect socket
-    SocketService().leaveRoom();
-
-    // 2. Hapus token
-    await SecureStorage().deleteToken();
-    Network().token = null;
-
-    // 3. Bersihkan provider
-    Provider.of<ChatProvider>(context, listen: false).clearRoom();
-
-    // 4. Navigasi ke login
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
-  }
+  //   isLoading = false;
+  //   notifyListeners();
+  // }
 
   Future<void> getListAllUser(BuildContext context) async {
     isLoading = true;

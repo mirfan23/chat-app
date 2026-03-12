@@ -37,12 +37,12 @@ class _MainAppState extends State<MainApp> {
   final List<BottomNavigationBarItem> bottomNavBarItems = [
     BottomNavigationBarItem(
       icon: Icon(Icons.home, color: darkGreyColor),
-      activeIcon: Icon(Icons.home, color: whiteColor),
+      activeIcon: Icon(Icons.home, color: blackColor),
       label: 'Home',
     ),
     BottomNavigationBarItem(
       icon: Icon(Icons.person, color: darkGreyColor),
-      activeIcon: Icon(Icons.person, color: whiteColor),
+      activeIcon: Icon(Icons.person, color: blackColor),
       label: 'Profile',
     ),
   ];
@@ -89,16 +89,15 @@ class _MainAppState extends State<MainApp> {
           elevation: 0,
           height: _getBottombarHeight(context),
           child: BottomNavigationBar(
-            backgroundColor: blackColor,
+            backgroundColor: whiteColor,
             items: bottomNavBarItems,
             currentIndex: currentPage,
+            iconSize: 25,
             onTap: itemSelected,
             elevation: 0,
-            selectedLabelStyle: textStyleSmall(context),
-            unselectedLabelStyle: textStyleTiny(context),
-            selectedItemColor: primaryColor,
-            unselectedItemColor: greyColor,
-            type: BottomNavigationBarType.fixed,
+            selectedItemColor: blackColor,
+            unselectedItemColor: darkGreyColor,
+            type: BottomNavigationBarType.shifting,
           ),
         ),
       ),

@@ -9,6 +9,7 @@ import 'package:fx_helper/widgets/net_msg_dialog.dart';
 
 class ChatProvider extends ChangeNotifier {
   bool isLoading = false;
+  bool isTyping = false;
 
   List<Map<String, dynamic>> messages = [];
 
@@ -66,5 +67,15 @@ class ChatProvider extends ChangeNotifier {
 
   void clearRoom() {
     messages.clear();
+  }
+
+  Future<void> setReadMessage(BuildContext context, String roomId) async {
+    dynamic res;
+    try {
+      res = await Network().getApi(Net.gateway, 'markRead?roomId=$roomId');
+      print('mark as read ${res.body}');
+    } catch (e) {
+      NetMsgDialog.handleError(context, e, res);
+    }
   }
 }

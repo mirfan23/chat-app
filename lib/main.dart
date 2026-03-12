@@ -15,12 +15,12 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SocketService().connect(); // WAJIB DI SINI
   try {
     await Network().init();
   } catch (e) {
     print(e);
   }
+  SocketService().connect(); // WAJIB DI SINI
   runApp(const MyApp());
 }
 

@@ -1,11 +1,14 @@
 import 'package:chat_app/models/profile_response.dart';
 import 'package:chat_app/network/Net.dart';
 import 'package:chat_app/network/network.dart';
+import 'package:chat_app/page/chat/chat_provider.dart';
 import 'package:chat_app/page/login/login_page.dart';
+import 'package:chat_app/page/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fx_helper/network/fx_network.dart';
 import 'package:fx_helper/secure_storage.dart';
 import 'package:fx_helper/widgets/net_msg_dialog.dart';
+import 'package:provider/provider.dart';
 
 class ProfileProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -42,5 +45,20 @@ class ProfileProvider extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
     return false;
+  }
+
+  void logout(BuildContext context) async {
+    // 1. Disconnect socket
+    SocketService().leaveRoom();
+
+    // 2. Hapus token
+    await SecureStorage().deleteToken();
+    Network().token = null;
+
+    // 3. Bersihkan provider
+    Provider.of<ChatProvider>(context, listen: false).clearRoom();
+
+    // 4. Navigasi ke login
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
   }
 }

@@ -2,8 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat_app/page/chat/chat_provider.dart';
+import 'package:chat_app/page/chat/widget/chat_bubble.dart';
+import 'package:chat_app/page/chat/widget/typing_indicator.dart';
+import 'package:chat_app/page/chat/widget/utils.dart';
 import 'package:chat_app/page/socket_service.dart';
 import 'package:chat_app/security/e2ee_services.dart';
+import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,33 +30,72 @@ class _ChatPageState extends State<ChatPage> {
 
   String? typingUser;
   Timer? typingTimer;
+  bool showScrollButton = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+
+      final max = _scrollController.position.maxScrollExtent;
+      final current = _scrollController.position.pixels;
+
+      final atBottom = (max - current) < 80;
+
+      if (atBottom && showScrollButton) {
+        setState(() => showScrollButton = false);
+      }
+
+      if (!atBottom && !showScrollButton) {
+        setState(() => showScrollButton = true);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 🔥 JOIN ROOM (akan auto rejoin kalau reconnect)
       SocketService().joinRoom(widget.roomId);
 
       subscription = SocketService().stream.listen((data) {
+        print("📥 RAW SOCKET: $data");
         final decoded = jsonDecode(data);
+        if (decoded["type"] == "typing") {
+          print("⌨️ TYPING EVENT: $decoded");
+        }
 
         if (decoded["type"] == "newMessage" && decoded["roomId"] == widget.roomId) {
+          final atBottom = isAtBottom();
+
           setState(() {
             Provider.of<ChatProvider>(context, listen: false).addMessage(decoded);
           });
-          scrollToBottom();
+
+          if (atBottom) {
+            scrollToBottom();
+          } else {
+            setState(() => showScrollButton = true);
+          }
         }
 
         if (decoded["type"] == "typing" && decoded["roomId"] == widget.roomId) {
-          setState(() {
-            typingUser = decoded["isTyping"] == true ? decoded["sender"] : null;
-          });
+          if (decoded["sender"] != widget.username) {
+            final isTyping = decoded["isTyping"] ?? false;
+
+            setState(() {
+              typingUser = isTyping ? decoded["sender"] : null;
+            });
+
+            if (isTyping) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                scrollToBottom();
+              });
+            }
+          }
         }
       });
 
       Provider.of<ChatProvider>(context, listen: false).getMessages(context, widget.roomId);
-      scrollToBottom();
+      Provider.of<ChatProvider>(context, listen: false).setReadMessage(context, widget.roomId);
+      scrollToBottom(animated: false);
     });
   }
 
@@ -85,20 +128,35 @@ class _ChatPageState extends State<ChatPage> {
     controller.clear();
   }
 
-  void sendTyping(bool isTyping) {
-    SocketService().send({"type": "typing", "roomId": widget.roomId, "sender": widget.username, "isTyping": isTyping});
+  void sendTyping(bool value) {
+    final data = {"type": "typing", "roomId": widget.roomId, "sender": widget.username, "isTyping": value};
+
+    print("📤 SEND TYPING: $data");
+
+    SocketService().send(data);
   }
 
-  void scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent, // 🔥 karena reverse: true
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
+  void scrollToBottom({bool animated = true}) {
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (!_scrollController.hasClients) return;
+
+      final position = _scrollController.position.maxScrollExtent;
+
+      if (animated) {
+        _scrollController.animateTo(position, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      } else {
+        _scrollController.jumpTo(position);
       }
     });
+  }
+
+  bool isAtBottom() {
+    if (!_scrollController.hasClients) return true;
+
+    final max = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.position.pixels;
+
+    return (max - current) < 50;
   }
 
   @override
@@ -106,68 +164,143 @@ class _ChatPageState extends State<ChatPage> {
     return SafeArea(
       top: false,
       child: Scaffold(
+        backgroundColor: whiteColor,
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(title: Text(widget.friend)),
-        body: Column(
-          children: [
-            Expanded(
-              child: Consumer<ChatProvider>(
-                builder: (context, provider, child) {
-                  return ListView.builder(
-                    controller: _scrollController,
-                    // reverse: true,
-                    itemCount: provider.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = provider.messages[index];
-                      final isMe = msg["sender"] == widget.username;
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Expanded(
+                    child: Consumer<ChatProvider>(
+                      builder: (context, provider, child) {
+                        return ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                          itemCount: provider.messages.length + (typingUser != null ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == provider.messages.length) {
+                              return typingBubble();
+                            }
 
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.all(6),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.blue : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(12),
+                            final msg = provider.messages[index];
+                            final prev = index > 0 ? provider.messages[index - 1] : null;
+                            final isMe = msg["sender"] == widget.username;
+                            final showDate = isNewDate(msg["createdAt"], prev?["createdAt"]);
+                            final grouped = isSameSender(msg, prev);
+
+                            return Column(
+                              children: [
+                                if (showDate)
+                                  Column(
+                                    children: [
+                                      SizedBox(height: 10),
+                                      DateSeparator(text: formatDateSeparator(msg["createdAt"])),
+                                      SizedBox(height: 10),
+                                    ],
+                                  ),
+
+                                ChatBubble(msg: msg, isMe: isMe, grouped: grouped),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Consumer<ChatProvider>(
+                            builder: (context, provider, _) {
+                              return TextField(
+                                controller: controller,
+                                onChanged: (value) {
+                                  if (!provider.isTyping) {
+                                    sendTyping(true);
+                                    provider.isTyping = true;
+                                  }
+
+                                  typingTimer?.cancel();
+
+                                  typingTimer = Timer(const Duration(seconds: 1), () {
+                                    sendTyping(false);
+                                    provider.isTyping = false;
+                                  });
+                                },
+                                onTapOutside: (event) {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: "Type message...",
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          child: Text(msg["text"] ?? "", style: TextStyle(color: isMe ? Colors.white : Colors.black)),
                         ),
-                      );
-                    },
-                  );
-                },
+                        SizedBox(width: 10),
+                        Container(
+                          decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(50)),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(50),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(50),
+                              onTap: sendMessage,
+                              child: Padding(
+                                padding: EdgeInsets.all(15),
+                                child: Icon(Icons.send, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-
-            if (typingUser != null && typingUser != widget.username)
-              Padding(
-                padding: const EdgeInsets.only(left: 12, bottom: 4),
-                child: Text(
-                  "$typingUser sedang mengetik...",
-                  style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
-                ),
-              ),
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    onChanged: (value) {
-                      sendTyping(true);
-
-                      typingTimer?.cancel();
-                      typingTimer = Timer(const Duration(seconds: 1), () {
-                        sendTyping(false);
-                      });
+              if (showScrollButton)
+                Positioned(
+                  bottom: 1000,
+                  right: 20,
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.blue,
+                    onPressed: () {
+                      scrollToBottom();
                     },
-                    decoration: const InputDecoration(hintText: "Type message..."),
+                    child: const Icon(Icons.arrow_downward),
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.send), onPressed: sendMessage),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget typingBubble() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(18)),
+        child: const TypingIndicator(),
       ),
     );
   }

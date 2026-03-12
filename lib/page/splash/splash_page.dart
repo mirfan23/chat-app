@@ -1,5 +1,4 @@
 import 'package:chat_app/network/network.dart';
-import 'package:chat_app/page/chat_list/chat_list_page.dart';
 import 'package:chat_app/page/login/login_page.dart';
 import 'package:chat_app/page/main_app.dart';
 import 'package:chat_app/page/profile/profile_provider.dart';
@@ -29,8 +28,12 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      Provider.of<ProfileProvider>(context, listen: false).getProfile(context);
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainApp()));
+      bool isSuccess = await Provider.of<ProfileProvider>(context, listen: false).getProfile(context);
+      if (isSuccess) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainApp()));
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
+      }
     } else {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
     }

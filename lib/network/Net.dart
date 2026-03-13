@@ -1,1 +1,1 @@
-enum Net { gateway }
+enum Net { gateway, websocket }

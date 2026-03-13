@@ -21,41 +21,42 @@ class _ChatListPageState extends State<ChatListPage> {
   void initState() {
     super.initState();
 
-    // Auto fetch saat pertama kali masuk
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ChatListProvider>();
+      final chatProvider = context.read<ChatListProvider>();
       final profileProvider = context.read<ProfileProvider>();
-      provider.initSocketListener(profileProvider.profile?.username ?? '');
+
+      final username = profileProvider.profile?.username ?? '';
+
+      chatProvider.initSocketListener(username);
+
       SocketService().getChatList();
     });
   }
 
   Future<void> getData() async {
-    Provider.of<ChatListProvider>(context, listen: false).getListAllUser(context);
-    SocketService().getChatList();
+    context.read<ChatListProvider>().refreshChatList();
   }
 
   @override
   void dispose() {
-    // Provider.of<ChatListProvider>(context, listen: false)
-    //     .disposeSocket();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     var profielProvider = context.watch<ProfileProvider>();
-    var username = profielProvider.profile?.username ?? '';
+    // var username = profielProvider.profile?.username ?? '';
+    var id = profielProvider.profile?.id ?? '';
     return Scaffold(
-      appBar: AppBar(title: const Text("Chats")),
+      appBar: AppBar(title: const Text("Chats"), automaticallyImplyLeading: false),
       body: RefreshIndicator(
         onRefresh: getData,
         child: Consumer<ChatListProvider>(
           builder: (context, provider, _) {
             // 🔵 Loading state
-            if (provider.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            // if (provider.isLoading) {
+            //   return const Center(child: CircularProgressIndicator());
+            // }
 
             // 🔵 Empty state
             if (provider.chatList.isEmpty) {
@@ -77,7 +78,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 return ListTile(
                   leading: Stack(
                     children: [
-                      ImageInitials(text: chat.friend, style: textStyleHuge(context)),
+                      ImageInitials(text: chat.friendName, style: textStyleHuge(context)),
 
                       // ONLINE DOT
                       Positioned(
@@ -102,7 +103,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          chat.friend,
+                          chat.friendName,
                           style: TextStyle(fontWeight: chat.unreadCount > 0 ? FontWeight.bold : FontWeight.w500),
                         ),
                       ),
@@ -121,14 +122,14 @@ class _ChatListPageState extends State<ChatListPage> {
 
                   subtitle: Row(
                     children: [
-                      if (chat.lastSender == username)
+                      if (chat.lastSender == id)
                         Icon(
                           chat.isRead ? Icons.done_all : Icons.done,
                           size: 18,
                           color: chat.isRead ? Colors.blue : Colors.grey,
                         ),
 
-                      if (chat.lastSender == username) const SizedBox(width: 4),
+                      if (chat.lastSender == id) const SizedBox(width: 4),
 
                       Expanded(
                         child: Text(
@@ -165,10 +166,12 @@ class _ChatListPageState extends State<ChatListPage> {
                   ),
 
                   onTap: () {
+                    print("🔥 DEBUG Chat List Tap : $id");
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ChatPage(roomId: chat.roomId, username: username, friend: chat.friend),
+                        builder: (_) =>
+                            ChatPage(roomId: chat.roomId, id: id, friend: chat.friend, friendName: chat.friendName),
                       ),
                     ).then((_) => SocketService().getChatList());
                   },

@@ -32,19 +32,23 @@ class AllUserResponse {
 
 class AllUserModel {
   String? username;
+  String? userId;
   bool? isOnline;
 
-  AllUserModel({this.username, this.isOnline});
+  AllUserModel({this.username, this.userId, this.isOnline});
 
-  AllUserModel copyWith({String? username, bool? isOnline}) =>
-      AllUserModel(username: username ?? this.username, isOnline: isOnline ?? this.isOnline);
+  AllUserModel copyWith({String? username, String? userId, bool? isOnline}) => AllUserModel(
+    username: username ?? this.username,
+    userId: userId ?? this.userId,
+    isOnline: isOnline ?? this.isOnline,
+  );
 
   factory AllUserModel.fromRawJson(String str) => AllUserModel.fromJson(json.decode(str));
 
   String toRawJson() => json.encode(toJson());
 
   factory AllUserModel.fromJson(Map<String, dynamic> json) =>
-      AllUserModel(username: json["username"], isOnline: json["isOnline"]);
+      AllUserModel(username: json["username"], userId: json["userId"], isOnline: json["isOnline"]);
 
-  Map<String, dynamic> toJson() => {"username": username, "isOnline": isOnline};
+  Map<String, dynamic> toJson() => {"username": username, "userId": userId, "isOnline": isOnline};
 }

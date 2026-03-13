@@ -48,6 +48,8 @@ class Network extends FxNetwork<Net> {
     switch (net) {
       case Net.gateway:
         return env.baseUrlGateway;
+      case Net.websocket:
+        return env.baseUrlWebSocket;
     }
   }
 }

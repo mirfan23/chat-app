@@ -27,22 +27,35 @@ class ProfileResponse {
 }
 
 class ProfileModel {
+  String? id;
   String? username;
+  String? publicKey;
   DateTime? createdAt;
 
-  ProfileModel({this.username, this.createdAt});
+  ProfileModel({this.id, this.username, this.publicKey, this.createdAt});
 
-  ProfileModel copyWith({String? username, DateTime? createdAt}) =>
-      ProfileModel(username: username ?? this.username, createdAt: createdAt ?? this.createdAt);
+  ProfileModel copyWith({String? id, String? username, String? publicKey, DateTime? createdAt}) => ProfileModel(
+    id: id ?? this.id,
+    username: username ?? this.username,
+    publicKey: publicKey ?? this.publicKey,
+    createdAt: createdAt ?? this.createdAt,
+  );
 
   factory ProfileModel.fromRawJson(String str) => ProfileModel.fromJson(json.decode(str));
 
   String toRawJson() => json.encode(toJson());
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) => ProfileModel(
+    id: json["id"],
     username: json["username"],
+    publicKey: json["publicKey"],
     createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
   );
 
-  Map<String, dynamic> toJson() => {"username": username, "createdAt": createdAt?.toIso8601String()};
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "username": username,
+    "publicKey": publicKey,
+    "createdAt": createdAt?.toIso8601String(),
+  };
 }

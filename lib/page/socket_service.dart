@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:chat_app/network/Net.dart';
 import 'package:chat_app/network/network.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -32,7 +33,9 @@ class SocketService {
 
     print("🔥 TOKEN: ${Network().token}");
 
-    _channel = WebSocketChannel.connect(Uri.parse("ws://10.1.158.142:3000/ws?token=${Network().token}"));
+    _channel = WebSocketChannel.connect(
+      Uri.parse("${Network().getDomainName(Net.websocket)}?token=${Network().token}"),
+    );
 
     _channel!.stream.listen(
       (message) {

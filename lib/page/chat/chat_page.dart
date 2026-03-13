@@ -13,10 +13,11 @@ import 'package:provider/provider.dart';
 
 class ChatPage extends StatefulWidget {
   final String roomId;
-  final String username;
+  final String id;
   final String friend;
+  final String friendName;
 
-  const ChatPage({super.key, required this.roomId, required this.username, required this.friend});
+  const ChatPage({super.key, required this.roomId, required this.id, required this.friend, required this.friendName});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -35,6 +36,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    final provider = Provider.of<ChatProvider>(context, listen: false);
+
+    /// 🔥 LISTEN TO SCROLL
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
 
@@ -45,16 +49,23 @@ class _ChatPageState extends State<ChatPage> {
 
       if (atBottom && showScrollButton) {
         setState(() => showScrollButton = false);
+
+        provider.setReadMessage(context, widget.roomId);
+        provider.markMessagesRead(widget.roomId);
+        sendReadMessage();
       }
 
       if (!atBottom && !showScrollButton) {
         setState(() => showScrollButton = true);
       }
     });
+
+    /// 🔥 INIT SOCKET
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 🔥 JOIN ROOM (akan auto rejoin kalau reconnect)
+      /// 🔥 JOIN ROOM (akan auto rejoin kalau reconnect)
       SocketService().joinRoom(widget.roomId);
 
+      /// 🔥 LISTEN TO SOCKET
       subscription = SocketService().stream.listen((data) {
         print("📥 RAW SOCKET: $data");
         final decoded = jsonDecode(data);
@@ -62,6 +73,7 @@ class _ChatPageState extends State<ChatPage> {
           print("⌨️ TYPING EVENT: $decoded");
         }
 
+        /// 🔥 NEW MESSAGE
         if (decoded["type"] == "newMessage" && decoded["roomId"] == widget.roomId) {
           final atBottom = isAtBottom();
 
@@ -71,30 +83,48 @@ class _ChatPageState extends State<ChatPage> {
 
           if (atBottom) {
             scrollToBottom();
+            // 🔥 mark read langsung jika user melihat pesan
+
+            provider.setReadMessage(context, widget.roomId);
+            provider.markMessagesRead(widget.roomId);
           } else {
             setState(() => showScrollButton = true);
           }
         }
 
+        /// 🔥 TYPING
         if (decoded["type"] == "typing" && decoded["roomId"] == widget.roomId) {
-          if (decoded["sender"] != widget.username) {
+          if (decoded["sender"] != widget.id) {
             final isTyping = decoded["isTyping"] ?? false;
 
             setState(() {
               typingUser = isTyping ? decoded["sender"] : null;
             });
 
-            if (isTyping) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                scrollToBottom();
-              });
+            if (isTyping && isAtBottom()) {
+              scrollToBottom();
             }
+          }
+        }
+
+        /// 🔥 MESSAGE READ
+        if (decoded["type"] == "messageRead" && decoded["roomId"] == widget.roomId) {
+          final reader = decoded["reader"];
+
+          if (reader != widget.id) {
+            Provider.of<ChatProvider>(context, listen: false).markMessagesRead(widget.roomId);
           }
         }
       });
 
-      Provider.of<ChatProvider>(context, listen: false).getMessages(context, widget.roomId);
-      Provider.of<ChatProvider>(context, listen: false).setReadMessage(context, widget.roomId);
+      /// 🔥 GET MESSAGES
+      provider.getMessages(context, widget.roomId);
+      provider.setReadMessage(context, widget.roomId);
+
+      /// 🔥 MARK AS READ
+      sendReadMessage();
+
+      /// 🔥 SEND TYPING
       scrollToBottom(animated: false);
     });
   }
@@ -117,7 +147,7 @@ class _ChatPageState extends State<ChatPage> {
     SocketService().send({
       "type": "sendMessage",
       "roomId": widget.roomId,
-      "sender": widget.username,
+      "sender": widget.id,
       "receiver": widget.friend,
       "cipherText": encrypted["cipherText"],
       "encryptedKey": encrypted["encryptedKey"],
@@ -129,24 +159,30 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void sendTyping(bool value) {
-    final data = {"type": "typing", "roomId": widget.roomId, "sender": widget.username, "isTyping": value};
+    final data = {"type": "typing", "roomId": widget.roomId, "sender": widget.id, "isTyping": value};
 
     print("📤 SEND TYPING: $data");
 
     SocketService().send(data);
   }
 
+  void sendReadMessage() {
+    SocketService().send({"type": "readMessage", "roomId": widget.roomId});
+  }
+
   void scrollToBottom({bool animated = true}) {
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (!_scrollController.hasClients) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 80), () {
+        if (!_scrollController.hasClients) return;
 
-      final position = _scrollController.position.maxScrollExtent;
+        final position = _scrollController.position.maxScrollExtent;
 
-      if (animated) {
-        _scrollController.animateTo(position, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      } else {
-        _scrollController.jumpTo(position);
-      }
+        if (animated) {
+          _scrollController.animateTo(position, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+        } else {
+          _scrollController.jumpTo(position);
+        }
+      });
     });
   }
 
@@ -166,7 +202,7 @@ class _ChatPageState extends State<ChatPage> {
       child: Scaffold(
         backgroundColor: whiteColor,
         resizeToAvoidBottomInset: true,
-        appBar: AppBar(title: Text(widget.friend)),
+        appBar: AppBar(title: Text(widget.friendName)),
         body: SafeArea(
           child: Stack(
             children: [
@@ -184,10 +220,13 @@ class _ChatPageState extends State<ChatPage> {
                             if (index == provider.messages.length) {
                               return typingBubble();
                             }
-
                             final msg = provider.messages[index];
+
                             final prev = index > 0 ? provider.messages[index - 1] : null;
-                            final isMe = msg["sender"] == widget.username;
+                            final isMe = msg["sender"] == widget.id;
+
+                            print("🔥 ISME  : $isMe");
+                            print("🔥 ISME  : sender => ${msg["sender"]}, me => ${widget.id}");
                             final showDate = isNewDate(msg["createdAt"], prev?["createdAt"]);
                             final grouped = isSameSender(msg, prev);
 
@@ -274,15 +313,16 @@ class _ChatPageState extends State<ChatPage> {
               ),
               if (showScrollButton)
                 Positioned(
-                  bottom: 1000,
+                  bottom: 100,
                   right: 20,
                   child: FloatingActionButton(
                     mini: true,
+                    shape: const CircleBorder(),
                     backgroundColor: Colors.blue,
                     onPressed: () {
                       scrollToBottom();
                     },
-                    child: const Icon(Icons.arrow_downward),
+                    child: const Icon(Icons.arrow_downward, color: Colors.white),
                   ),
                 ),
             ],

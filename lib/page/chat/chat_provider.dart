@@ -19,9 +19,12 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      res = await Network().getApi(Net.gateway, 'messages?roomId=$roomId');
+      final encodedRoomId = Uri.encodeComponent(roomId);
+
+      res = await Network().getApi(Net.gateway, "messages?roomId=$encodedRoomId");
 
       var body = json.decode(res.body);
+      print("get message : ${res.body}");
 
       if (res.statusCode == 200) {
         messages = List<Map<String, dynamic>>.from(body["data"]);
@@ -36,7 +39,7 @@ class ChatProvider extends ChangeNotifier {
 
         notifyListeners();
       } else {
-        throw ApiException(body['message']);
+        ApiException(body['message']);
       }
     } catch (e) {
       NetMsgDialog.handleError(context, e, res);
@@ -71,11 +74,29 @@ class ChatProvider extends ChangeNotifier {
 
   Future<void> setReadMessage(BuildContext context, String roomId) async {
     dynamic res;
+
     try {
-      res = await Network().getApi(Net.gateway, 'markRead?roomId=$roomId');
-      print('mark as read ${res.body}');
+      final encodedRoomId = Uri.encodeComponent(roomId);
+
+      res = await Network().getApi(Net.gateway, "markRead?roomId=$encodedRoomId");
+
+      if (res.statusCode != 200) {
+        var body = json.decode(res.body);
+        throw ApiException(body["message"]);
+      }
+      print("mark as read success");
     } catch (e) {
+      print("mark as read error: $e");
       NetMsgDialog.handleError(context, e, res);
     }
+  }
+
+  void markMessagesRead(String roomId) {
+    for (var msg in messages) {
+      if (msg["roomId"] == roomId && msg["isRead"] != true) {
+        msg["isRead"] = true;
+      }
+    }
+    notifyListeners();
   }
 }

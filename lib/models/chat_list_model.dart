@@ -1,6 +1,7 @@
 class ChatListModel {
   final String roomId;
   final String friend;
+  final String friendName;
   final String lastMessage;
   final String lastSender;
   final DateTime lastMessageTime;
@@ -11,6 +12,7 @@ class ChatListModel {
   ChatListModel({
     required this.roomId,
     required this.friend,
+    required this.friendName,
     required this.lastMessage,
     required this.lastSender,
     required this.lastMessageTime,
@@ -22,6 +24,7 @@ class ChatListModel {
   ChatListModel copyWith({
     String? roomId,
     String? friend,
+    String? friendName,
     String? lastMessage,
     String? lastSender,
     DateTime? lastMessageTime,
@@ -32,6 +35,7 @@ class ChatListModel {
     return ChatListModel(
       roomId: roomId ?? this.roomId,
       friend: friend ?? this.friend,
+      friendName: friendName ?? this.friendName,
       lastMessage: lastMessage ?? this.lastMessage,
       lastSender: lastSender ?? this.lastSender,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
@@ -45,6 +49,7 @@ class ChatListModel {
     return ChatListModel(
       roomId: json["roomId"] ?? "",
       friend: json["friend"] ?? "",
+      friendName: json["friendName"] ?? "",
       lastMessage: json["lastMessage"] ?? "",
       lastSender: json["lastSender"] ?? "",
       lastMessageTime: DateTime.tryParse(json["lastMessageTime"])?.toLocal() ?? DateTime.now(),

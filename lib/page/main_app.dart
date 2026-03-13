@@ -1,4 +1,5 @@
 import 'package:chat_app/network/network.dart';
+import 'package:chat_app/page/all_user/all_user_page.dart';
 import 'package:chat_app/page/chat_list/chat_list_page.dart';
 import 'package:chat_app/page/profile/profile_page.dart';
 import 'package:chat_app/theme.dart';
@@ -41,6 +42,11 @@ class _MainAppState extends State<MainApp> {
       label: 'Home',
     ),
     BottomNavigationBarItem(
+      icon: Icon(Icons.group, color: darkGreyColor),
+      activeIcon: Icon(Icons.group, color: blackColor),
+      label: 'All User',
+    ),
+    BottomNavigationBarItem(
       icon: Icon(Icons.person, color: darkGreyColor),
       activeIcon: Icon(Icons.person, color: blackColor),
       label: 'Profile',
@@ -49,12 +55,12 @@ class _MainAppState extends State<MainApp> {
 
   final List<Widget Function()> pagesBuilder = [
     () => ChatListPage(),
-    // () => AttendancePage(),
+    () => AllUserPage(),
     // () => HistoryPage(),
     () => ProfilePage(),
   ];
 
-  List<Widget> pages = List.generate(2, (index) => Container());
+  List<Widget> pages = List.generate(3, (index) => Container());
 
   double _getBottombarHeight(BuildContext context) {
     var smallFormFactor = MediaQuery.of(context).size.shortestSide < 550;

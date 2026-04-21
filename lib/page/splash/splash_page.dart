@@ -1,46 +1,45 @@
-import 'package:chat_app/network/network.dart';
-import 'package:chat_app/page/login/login_page.dart';
-import 'package:chat_app/page/main_app.dart';
-import 'package:chat_app/page/profile/profile_provider.dart';
+import 'package:chat_app/page/splash/splash_notiifer.dart';
+import 'package:chat_app/routes/routes.dart';
+import 'package:chat_app/state/splash/splash_state.dart';
 import 'package:flutter/material.dart';
-import 'package:fx_helper/secure_storage.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    checkLogin();
-  }
 
-  Future<void> checkLogin() async {
-    await Future.delayed(const Duration(seconds: 2));
-    String? token = await SecureStorage().getToken();
-    Network().token = token;
-
-    if (!mounted) return;
-
-    if (token != null && token.isNotEmpty) {
-      bool isSuccess = await Provider.of<ProfileProvider>(context, listen: false).getProfile(context);
-      if (isSuccess) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainApp()));
-      } else {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
-      }
-    } else {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
-    }
+    // delay supaya context sudah ready
+    Future.microtask(() {
+      ref.read(splashNotifier.notifier).checkLogin();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: FlutterLogo(size: 100)));
+    final state = ref.watch(splashNotifier);
+
+    // 🔥 listen untuk navigation
+    ref.listen<SplashState>(splashNotifier, (previous, next) {
+      if (!next.isLoading) {
+        if (next.isLoggedIn) {
+          context.go(Routes.home); // ✅ ke home
+        } else {
+          context.go(Routes.login); // ❌ ke login
+        }
+      }
+    });
+
+    return Scaffold(
+      body: Center(child: state.isLoading ? const CircularProgressIndicator() : const FlutterLogo(size: 100)),
+    );
   }
 }

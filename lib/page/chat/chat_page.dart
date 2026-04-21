@@ -1,17 +1,225 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:chat_app/page/chat/chat_provider.dart';
+import 'package:chat_app/page/chat/chat_notifier.dart';
 import 'package:chat_app/page/chat/widget/chat_bubble.dart';
 import 'package:chat_app/page/chat/widget/typing_indicator.dart';
 import 'package:chat_app/page/chat/widget/utils.dart';
-import 'package:chat_app/page/socket_service.dart';
-import 'package:chat_app/security/e2ee_services.dart';
 import 'package:chat_app/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChatPage extends StatefulWidget {
+// class ChatPage extends ConsumerStatefulWidget {
+//   final String roomId;
+//   final String id;
+//   final String friend;
+//   final String friendName;
+
+//   const ChatPage({super.key, required this.roomId, required this.id, required this.friend, required this.friendName});
+
+//   @override
+//   ConsumerState<ChatPage> createState() => _ChatPageState();
+// }
+
+// class _ChatPageState extends ConsumerState<ChatPage> {
+//   final TextEditingController controller = TextEditingController();
+//   final ScrollController scrollController = ScrollController();
+
+//   Timer? typingTimer;
+//   bool showScrollButton = false;
+
+//   @override
+//   void initState() {
+//     super.initState();
+
+//     /// 🔥 INIT CHAT
+//     Future.microtask(() {
+//       final notifier = ref.read(chatProvider.notifier);
+
+//       notifier.init(roomId: widget.roomId, myId: widget.id);
+
+//       notifier.getMessages(widget.roomId);
+//       notifier.sendRead();
+//     });
+
+//     scrollController.addListener(_handleScroll);
+//   }
+
+//   void _handleScroll() {
+//     if (!scrollController.hasClients) return;
+
+//     final max = scrollController.position.maxScrollExtent;
+//     final current = scrollController.position.pixels;
+
+//     final atBottom = (max - current) < 80;
+
+//     if (atBottom && showScrollButton) {
+//       setState(() => showScrollButton = false);
+
+//       ref.read(chatProvider.notifier).sendRead();
+//     }
+
+//     if (!atBottom && !showScrollButton) {
+//       setState(() => showScrollButton = true);
+//     }
+//   }
+
+//   void scrollToBottom({bool animated = true}) {
+//     WidgetsBinding.instance.addPostFrameCallback((_) {
+//       if (!scrollController.hasClients) return;
+
+//       final position = scrollController.position.maxScrollExtent;
+
+//       if (animated) {
+//         scrollController.animateTo(position, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+//       } else {
+//         scrollController.jumpTo(position);
+//       }
+//     });
+//   }
+
+//   bool isAtBottom() {
+//     if (!scrollController.hasClients) return true;
+
+//     final max = scrollController.position.maxScrollExtent;
+//     final current = scrollController.position.pixels;
+
+//     return (max - current) < 50;
+//   }
+
+//   @override
+//   void dispose() {
+//     controller.dispose();
+//     scrollController.dispose();
+//     typingTimer?.cancel();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final state = ref.watch(chatProvider);
+//     final notifier = ref.read(chatProvider.notifier);
+
+//     return Scaffold(
+//       backgroundColor: whiteColor,
+//       appBar: AppBar(title: Text(widget.friendName)),
+//       bottomNavigationBar: Container(),
+//       body: SafeArea(
+//         child: Stack(
+//           children: [
+//             Column(
+//               children: [
+//                 /// 🔥 MESSAGE LIST (UI LAMA DIPERTAHANKAN)
+//                 Expanded(
+//                   child: ListView.builder(
+//                     controller: scrollController,
+//                     padding: const EdgeInsets.symmetric(vertical: 10),
+//                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+//                     itemCount: state.messages.length + (state.typingUser != null ? 1 : 0),
+//                     itemBuilder: (context, index) {
+//                       /// 🔥 TYPING INDICATOR
+//                       if (index == state.messages.length) {
+//                         return typingBubble();
+//                       }
+
+//                       final msg = state.messages[index];
+//                       final prev = index > 0 ? state.messages[index - 1] : null;
+
+//                       final isMe = msg["sender"] == widget.id;
+
+//                       final showDate = isNewDate(msg["createdAt"], prev?["createdAt"]);
+
+//                       final grouped = isSameSender(msg, prev);
+//                       return Column(
+//                         children: [
+//                           if (showDate)
+//                             Column(
+//                               children: [
+//                                 const SizedBox(height: 10),
+//                                 DateSeparator(text: formatDateSeparator(msg["createdAt"])),
+//                                 const SizedBox(height: 10),
+//                               ],
+//                             ),
+
+//                           ChatBubble(msg: msg, isMe: isMe, grouped: grouped),
+//                         ],
+//                       );
+//                     },
+//                   ),
+//                 ),
+
+//                 /// 🔥 INPUT (UI LAMA)
+//                 AnimatedPadding(
+//                   duration: const Duration(milliseconds: 200),
+//                   padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+//                   child: Row(
+//                     children: [
+//                       Expanded(
+//                         child: TextField(
+//                           controller: controller,
+//                           onChanged: (_) {
+//                             notifier.sendTyping(true);
+
+//                             typingTimer?.cancel();
+//                             typingTimer = Timer(const Duration(seconds: 1), () => notifier.sendTyping(false));
+//                           },
+//                           decoration: const InputDecoration(
+//                             hintText: "Type message...",
+//                             border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+//                           ),
+//                         ),
+//                       ),
+//                       const SizedBox(width: 10),
+//                       Container(
+//                         decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(50)),
+//                         child: IconButton(
+//                           icon: const Icon(Icons.send, color: Colors.white),
+//                           onPressed: () {
+//                             notifier.sendMessage(text: controller.text, friend: widget.friend);
+//                             controller.clear();
+
+//                             scrollToBottom();
+//                           },
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ],
+//             ),
+
+//             /// 🔥 SCROLL BUTTON (TETAP)
+//             if (showScrollButton)
+//               Positioned(
+//                 bottom: 100,
+//                 right: 20,
+//                 child: FloatingActionButton(
+//                   mini: true,
+//                   backgroundColor: Colors.blue,
+//                   onPressed: scrollToBottom,
+//                   child: const Icon(Icons.arrow_downward, color: Colors.white),
+//                 ),
+//               ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget typingBubble() {
+//     return Align(
+//       alignment: Alignment.centerLeft,
+//       child: Container(
+//         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+//         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+//         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+//         decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(18)),
+//         child: const TypingIndicator(),
+//       ),
+//     );
+//   }
+// }
+
+class ChatPage extends ConsumerStatefulWidget {
   final String roomId;
   final String id;
   final String friend;
@@ -20,323 +228,229 @@ class ChatPage extends StatefulWidget {
   const ChatPage({super.key, required this.roomId, required this.id, required this.friend, required this.friendName});
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  ConsumerState<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends ConsumerState<ChatPage> with WidgetsBindingObserver {
   final TextEditingController controller = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController scrollController = ScrollController();
 
-  StreamSubscription? subscription;
-
-  String? typingUser;
   Timer? typingTimer;
   bool showScrollButton = false;
+
+  bool _isUserAtBottom = true;
 
   @override
   void initState() {
     super.initState();
-    final provider = Provider.of<ChatProvider>(context, listen: false);
 
-    /// 🔥 LISTEN TO SCROLL
-    _scrollController.addListener(() {
-      if (!_scrollController.hasClients) return;
+    WidgetsBinding.instance.addObserver(this);
 
-      final max = _scrollController.position.maxScrollExtent;
-      final current = _scrollController.position.pixels;
+    Future.microtask(() {
+      final notifier = ref.read(chatProvider.notifier);
 
-      final atBottom = (max - current) < 80;
+      notifier.init(roomId: widget.roomId, myId: widget.id);
 
-      if (atBottom && showScrollButton) {
-        setState(() => showScrollButton = false);
-
-        provider.setReadMessage(context, widget.roomId);
-        provider.markMessagesRead(widget.roomId);
-        sendReadMessage();
-      }
-
-      if (!atBottom && !showScrollButton) {
-        setState(() => showScrollButton = true);
-      }
+      notifier.getMessages(widget.roomId);
+      notifier.sendRead();
     });
 
-    /// 🔥 INIT SOCKET
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      /// 🔥 JOIN ROOM (akan auto rejoin kalau reconnect)
-      SocketService().joinRoom(widget.roomId);
+    scrollController.addListener(_onScroll);
+  }
 
-      /// 🔥 LISTEN TO SOCKET
-      subscription = SocketService().stream.listen((data) {
-        print("📥 RAW SOCKET: $data");
-        final decoded = jsonDecode(data);
-        if (decoded["type"] == "typing") {
-          print("⌨️ TYPING EVENT: $decoded");
-        }
+  @override
+  void didChangeMetrics() {
+    final view = View.of(context);
+    final keyboardVisible = view.viewInsets.bottom > 0;
 
-        /// 🔥 NEW MESSAGE
-        if (decoded["type"] == "newMessage" && decoded["roomId"] == widget.roomId) {
-          final atBottom = isAtBottom();
-
-          setState(() {
-            Provider.of<ChatProvider>(context, listen: false).addMessage(decoded);
-          });
-
-          if (atBottom) {
-            scrollToBottom();
-            // 🔥 mark read langsung jika user melihat pesan
-
-            provider.setReadMessage(context, widget.roomId);
-            provider.markMessagesRead(widget.roomId);
-          } else {
-            setState(() => showScrollButton = true);
-          }
-        }
-
-        /// 🔥 TYPING
-        if (decoded["type"] == "typing" && decoded["roomId"] == widget.roomId) {
-          if (decoded["sender"] != widget.id) {
-            final isTyping = decoded["isTyping"] ?? false;
-
-            setState(() {
-              typingUser = isTyping ? decoded["sender"] : null;
-            });
-
-            if (isTyping && isAtBottom()) {
-              scrollToBottom();
-            }
-          }
-        }
-
-        /// 🔥 MESSAGE READ
-        if (decoded["type"] == "messageRead" && decoded["roomId"] == widget.roomId) {
-          final reader = decoded["reader"];
-
-          if (reader != widget.id) {
-            Provider.of<ChatProvider>(context, listen: false).markMessagesRead(widget.roomId);
-          }
-        }
+    if (keyboardVisible && _isUserAtBottom) {
+      Future.delayed(const Duration(milliseconds: 120), () {
+        _scrollToBottom(animated: true);
       });
+    }
+  }
 
-      /// 🔥 GET MESSAGES
-      provider.getMessages(context, widget.roomId);
-      provider.setReadMessage(context, widget.roomId);
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
 
-      /// 🔥 MARK AS READ
-      sendReadMessage();
+    final max = scrollController.position.maxScrollExtent;
+    final current = scrollController.position.pixels;
 
-      /// 🔥 SEND TYPING
-      scrollToBottom(animated: false);
+    final atBottom = (max - current) < 100;
+
+    _isUserAtBottom = atBottom;
+
+    if (atBottom && showScrollButton) {
+      setState(() => showScrollButton = false);
+      ref.read(chatProvider.notifier).sendRead();
+    }
+
+    if (!atBottom && !showScrollButton) {
+      setState(() => showScrollButton = true);
+    }
+  }
+
+  void _scrollToBottom({bool animated = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients) return;
+
+      final pos = scrollController.position.maxScrollExtent;
+
+      if (animated) {
+        scrollController.animateTo(pos, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      } else {
+        scrollController.jumpTo(pos);
+      }
     });
+  }
+
+  void _handleNewMessageAutoScroll() {
+    if (_isUserAtBottom) {
+      _scrollToBottom();
+    }
   }
 
   @override
   void dispose() {
-    subscription?.cancel();
-    SocketService().leaveRoom();
+    WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
-    _scrollController.dispose(); // 🔥 jangan lupa dispose
+    scrollController.dispose();
+    typingTimer?.cancel();
     super.dispose();
-  }
-
-  void sendMessage() {
-    final text = controller.text.trim();
-    if (text.isEmpty) return;
-
-    final encrypted = E2EEService.encryptMessage(text, widget.roomId);
-
-    SocketService().send({
-      "type": "sendMessage",
-      "roomId": widget.roomId,
-      "sender": widget.id,
-      "receiver": widget.friend,
-      "cipherText": encrypted["cipherText"],
-      "encryptedKey": encrypted["encryptedKey"],
-      "iv": encrypted["iv"],
-      "preview": text,
-    });
-
-    controller.clear();
-  }
-
-  void sendTyping(bool value) {
-    final data = {"type": "typing", "roomId": widget.roomId, "sender": widget.id, "isTyping": value};
-
-    print("📤 SEND TYPING: $data");
-
-    SocketService().send(data);
-  }
-
-  void sendReadMessage() {
-    SocketService().send({"type": "readMessage", "roomId": widget.roomId});
-  }
-
-  void scrollToBottom({bool animated = true}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 80), () {
-        if (!_scrollController.hasClients) return;
-
-        final position = _scrollController.position.maxScrollExtent;
-
-        if (animated) {
-          _scrollController.animateTo(position, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-        } else {
-          _scrollController.jumpTo(position);
-        }
-      });
-    });
-  }
-
-  bool isAtBottom() {
-    if (!_scrollController.hasClients) return true;
-
-    final max = _scrollController.position.maxScrollExtent;
-    final current = _scrollController.position.pixels;
-
-    return (max - current) < 50;
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Scaffold(
-        backgroundColor: whiteColor,
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(title: Text(widget.friendName)),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  Expanded(
-                    child: Consumer<ChatProvider>(
-                      builder: (context, provider, child) {
-                        return ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                          itemCount: provider.messages.length + (typingUser != null ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == provider.messages.length) {
-                              return typingBubble();
-                            }
-                            final msg = provider.messages[index];
+    // final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final state = ref.watch(chatProvider);
+    final notifier = ref.read(chatProvider.notifier);
 
-                            final prev = index > 0 ? provider.messages[index - 1] : null;
-                            final isMe = msg["sender"] == widget.id;
+    ref.listen(chatProvider, (prev, next) {
+      if (prev?.messages.length != next.messages.length) {
+        _handleNewMessageAutoScroll();
+      }
+    });
 
-                            print("🔥 ISME  : $isMe");
-                            print("🔥 ISME  : sender => ${msg["sender"]}, me => ${widget.id}");
-                            final showDate = isNewDate(msg["createdAt"], prev?["createdAt"]);
-                            final grouped = isSameSender(msg, prev);
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: whiteColor,
 
-                            return Column(
-                              children: [
-                                if (showDate)
-                                  Column(
-                                    children: [
-                                      SizedBox(height: 10),
-                                      DateSeparator(text: formatDateSeparator(msg["createdAt"])),
-                                      SizedBox(height: 10),
-                                    ],
-                                  ),
+      /// ❗ IMPORTANT: jangan pakai bottomNavigationBar kosong
+      /// ini sering bikin layout weird di shell route
+      appBar: AppBar(title: Text(widget.friendName)),
 
-                                ChatBubble(msg: msg, isMe: isMe, grouped: grouped),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            /// =========================
+            /// MESSAGE LIST
+            /// =========================
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                // keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                itemCount: state.messages.length + (state.typingUser != null ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == state.messages.length) {
+                    return _typingBubble();
+                  }
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Consumer<ChatProvider>(
-                            builder: (context, provider, _) {
-                              return TextField(
-                                controller: controller,
-                                onChanged: (value) {
-                                  if (!provider.isTyping) {
-                                    sendTyping(true);
-                                    provider.isTyping = true;
-                                  }
+                  final msg = state.messages[index];
+                  final prev = index > 0 ? state.messages[index - 1] : null;
 
-                                  typingTimer?.cancel();
+                  final isMe = msg["sender"] == widget.id;
 
-                                  typingTimer = Timer(const Duration(seconds: 1), () {
-                                    sendTyping(false);
-                                    provider.isTyping = false;
-                                  });
-                                },
-                                onTapOutside: (event) {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                },
-                                decoration: const InputDecoration(
-                                  hintText: "Type message...",
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(50)),
-                                    borderSide: BorderSide(color: Colors.grey),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(50)),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Container(
-                          decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(50)),
-                          child: Material(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(50),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(50),
-                              onTap: sendMessage,
-                              child: Padding(
-                                padding: EdgeInsets.all(15),
-                                child: Icon(Icons.send, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ),
+                  final showDate = isNewDate(msg["createdAt"], prev?["createdAt"]);
+
+                  final grouped = isSameSender(msg, prev);
+
+                  return Column(
+                    children: [
+                      if (showDate) ...[
+                        const SizedBox(height: 10),
+                        DateSeparator(text: formatDateSeparator(msg["createdAt"])),
+                        const SizedBox(height: 10),
                       ],
-                    ),
-                  ),
-                ],
+                      ChatBubble(msg: msg, isMe: isMe, grouped: grouped),
+                    ],
+                  );
+                },
               ),
-              if (showScrollButton)
-                Positioned(
-                  bottom: 100,
-                  right: 20,
-                  child: FloatingActionButton(
-                    mini: true,
-                    shape: const CircleBorder(),
-                    backgroundColor: Colors.blue,
-                    onPressed: () {
-                      scrollToBottom();
-                    },
-                    child: const Icon(Icons.arrow_downward, color: Colors.white),
-                  ),
+            ),
+
+            /// =========================
+            /// INPUT (KEYBOARD SAFE + PINNED)
+            /// =========================
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        onTap: () => _scrollToBottom(),
+                        onChanged: (_) {
+                          notifier.sendTyping(true);
+
+                          typingTimer?.cancel();
+                          typingTimer = Timer(const Duration(seconds: 1), () => notifier.sendTyping(false));
+                        },
+                        decoration: const InputDecoration(
+                          hintText: "Type message...",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    /// SEND BUTTON
+                    Container(
+                      decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(50)),
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white),
+                        onPressed: () {
+                          final text = controller.text.trim();
+                          if (text.isEmpty) return;
+
+                          notifier.sendMessage(text: text, friend: widget.friend);
+
+                          controller.clear();
+
+                          _scrollToBottom();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
+
+      /// =========================
+      /// SCROLL BUTTON
+      /// =========================
+      // floatingActionButton: showScrollButton
+      //     ? FloatingActionButton(
+      //         mini: true,
+      //         backgroundColor: Colors.blue,
+      //         onPressed: _scrollToBottom,
+      //         child: const Icon(Icons.arrow_downward, color: Colors.white),
+      //       )
+      //     : null,
+      // floatingActionButtonLocation: FloatingActionButtonLocation.miniEndFloat,
     );
   }
 
-  Widget typingBubble() {
+  Widget _typingBubble() {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(18)),

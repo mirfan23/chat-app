@@ -1,57 +1,56 @@
-import 'package:chat_app/page/login/login_page.dart';
-import 'package:chat_app/page/register/register_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:chat_app/page/register/register_notifier.dart';
+import 'package:chat_app/routes/routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
-class RegisterPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class RegisterPage extends ConsumerWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(registerProvider);
+    final notifier = ref.read(registerProvider.notifier);
 
-class _RegisterPageState extends State<RegisterPage> {
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Register")),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Consumer<RegisterProvider>(
-          builder: (context, provider, _) {
-            return Column(
-              children: [
-                TextField(
-                  controller: provider.usernameController,
-                  decoration: const InputDecoration(labelText: "Username"),
-                ),
-                TextField(
-                  controller: provider.passwordController,
-                  decoration: const InputDecoration(labelText: "password"),
-                ),
-                const SizedBox(height: 20),
-                // ElevatedButton(onPressed: login, child: const Text("Login")),
-                ElevatedButton(
-                  onPressed: () async {
-                    bool isSuccess = await provider.register(context);
+        child: Column(
+          children: [
+            TextField(
+              controller: notifier.usernameController,
+              decoration: const InputDecoration(labelText: "Username"),
+            ),
+            TextField(
+              controller: notifier.passwordController,
+              decoration: const InputDecoration(labelText: "Password"),
+            ),
+            const SizedBox(height: 20),
 
-                    if (isSuccess) {
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
-                    } else {
-                      return;
-                    }
-                  },
-                  child: const Text("Register"),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
-                  },
-                  child: const Text("Ke halaman Login"),
-                ),
-              ],
-            );
-          },
+            /// 🔹 BUTTON REGISTER
+            ElevatedButton(
+              onPressed: state.isLoading
+                  ? null
+                  : () async {
+                      final isSuccess = await notifier.register(context);
+
+                      if (isSuccess) {
+                        context.go(Routes.login); // ✅ go_router
+                      }
+                    },
+              child: state.isLoading ? const CircularProgressIndicator() : const Text("Register"),
+            ),
+
+            /// 🔹 KE LOGIN
+            ElevatedButton(
+              onPressed: () {
+                context.go(Routes.login);
+              },
+              child: const Text("Ke halaman Login"),
+            ),
+          ],
         ),
       ),
     );

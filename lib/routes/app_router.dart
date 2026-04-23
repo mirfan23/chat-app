@@ -1,11 +1,11 @@
-import 'package:chat_app/page/all_user/all_user_page.dart';
-import 'package:chat_app/page/chat/chat_page.dart';
-import 'package:chat_app/page/chat_list/chat_list_page.dart';
-import 'package:chat_app/page/login/login_page.dart';
-import 'package:chat_app/page/main_app.dart';
-import 'package:chat_app/page/profile/profile_page.dart';
-import 'package:chat_app/page/register/register_page.dart';
-import 'package:chat_app/page/splash/splash_page.dart';
+import 'package:chat_app/features/all_users/all_user_page.dart';
+import 'package:chat_app/features/chat/chat_page.dart';
+import 'package:chat_app/features/chat_list/chat_list_page.dart';
+import 'package:chat_app/features/auth/login/login_page.dart';
+import 'package:chat_app/main_app.dart';
+import 'package:chat_app/features/profile/profile_page.dart';
+import 'package:chat_app/features/auth/register/register_page.dart';
+import 'package:chat_app/features/splash/splash_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 

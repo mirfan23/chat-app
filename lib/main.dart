@@ -1,7 +1,7 @@
-import 'package:chat_app/network/network.dart';
-import 'package:chat_app/page/socket_service.dart';
+import 'package:chat_app/core/network/network.dart';
+import 'package:chat_app/core/services/socket_service.dart';
 import 'package:chat_app/routes/app_router.dart';
-import 'package:chat_app/theme.dart';
+import 'package:chat_app/core/themes/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
